@@ -85,6 +85,13 @@ const SynnaxBankingPlatform = () => {
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [balanceError, setBalanceError] = useState('');
 
+  // Add at the top of SynnaxBankingPlatform:
+  const [pendingLiveMode, setPendingLiveMode] = useState(null); // null, true, or false
+  const [showModeConfirm, setShowModeConfirm] = useState(false);
+
+  // Add state for the gotcha modal:
+  const [showGotcha, setShowGotcha] = useState(false);
+
   // Initialize Aave contracts on mount
   useEffect(() => {
     const initializeContracts = async () => {
@@ -105,6 +112,17 @@ const SynnaxBankingPlatform = () => {
       initializeContracts();
     }
   }, [ready, authenticated]);
+
+  // On mount, initialize isLiveMode from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('isLiveMode');
+    if (stored !== null) setIsLiveMode(stored === 'true');
+  }, []);
+
+  // When isLiveMode changes, persist to localStorage
+  useEffect(() => {
+    localStorage.setItem('isLiveMode', isLiveMode);
+  }, [isLiveMode]);
 
   // Refetch balances function with loading and error
   const refetchBalances = async () => {
@@ -366,12 +384,29 @@ const SynnaxBankingPlatform = () => {
     }
   };
 
-  // Require login for live mode
-  const handleLiveMode = () => {
-    if (!authenticated) {
-      login();
-    } else {
-      setIsLiveMode(true);
+  // Handler to prompt for mode switch
+  const promptLiveModeSwitch = (toLive) => {
+    setPendingLiveMode(toLive);
+    setShowModeConfirm(true);
+  };
+
+  // Handler to confirm mode switch
+  const confirmLiveModeSwitch = () => {
+    setIsLiveMode(pendingLiveMode);
+    setShowModeConfirm(false);
+    setPendingLiveMode(null);
+  };
+
+  // Handler to cancel mode switch
+  const cancelLiveModeSwitch = () => {
+    setShowModeConfirm(false);
+    setPendingLiveMode(null);
+  };
+
+  // Replace handleLiveMode with:
+  const handleLiveMode = (toLive) => {
+    if (isLiveMode !== toLive) {
+      promptLiveModeSwitch(toLive);
     }
   };
 
@@ -393,7 +428,29 @@ const SynnaxBankingPlatform = () => {
   };
 
   // Copy Trading Data
-  const traders = [
+  const traders = isLiveMode ? [
+    {
+      id: 99,
+      name: "James Wynn",
+      username: "@jameswynnreal",
+      avatar: "JW",
+      monthlyPnL: -100000000, // -$0.1B
+      totalPnL: 0,
+      sharpeRatio: -3.14,
+      winRate: 50,
+      totalTrades: 0,
+      followers: 500000,
+      minCopyAmount: 1,
+      maxCopyAmount: 10000000000,
+      strategy: "Speculative Trading",
+      riskLevel: "Very High",
+      isVerified: false,
+      isActive: true,
+      performance: [],
+      link: "https://x.com/jameswynnreal?lang=en",
+      avatarUrl: './James.jpg' // Updated avatar URL
+    }
+  ] : [
     {
       id: 1,
       name: "Alex Chen",
@@ -735,7 +792,7 @@ const SynnaxBankingPlatform = () => {
             if (!authenticated && isLiveMode) {
               login();
             } else {
-              setIsLiveMode(!isLiveMode);
+              handleLiveMode(!isLiveMode); // <-- USE THE NEW HANDLER
             }
           }}
         >
@@ -1396,7 +1453,17 @@ const SynnaxBankingPlatform = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
                     <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold">{trader.avatar}</span>
+                      {trader.avatarUrl ? (
+                        <img
+                          src={trader.avatarUrl}
+                          alt={trader.name}
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-emerald-900 flex items-center justify-center text-xl font-bold text-white">
+                          {trader.avatar}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <div className="flex items-center space-x-2">
@@ -1636,6 +1703,29 @@ const SynnaxBankingPlatform = () => {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showModeConfirm && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-gray-900 p-8 rounded-xl shadow-xl text-center">
+            <h2 className="text-xl font-bold mb-4">Switch to {pendingLiveMode ? 'Live' : 'Demo'} Mode?</h2>
+            <p className="mb-6">Are you sure you want to switch to {pendingLiveMode ? 'Live' : 'Demo'} mode? Unsaved progress may be lost.</p>
+            <div className="flex justify-center gap-4">
+              <button onClick={confirmLiveModeSwitch} className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-semibold">Yes, Switch</button>
+              <button onClick={cancelLiveModeSwitch} className="px-6 py-2 bg-gray-700 text-white rounded-lg font-semibold">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showGotcha && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 p-8 rounded-xl shadow-xl text-center max-w-sm w-full">
+            <h2 className="text-2xl font-bold mb-4 text-emerald-400">Gotcha!</h2>
+            <p className="mb-6 text-white">You thought we would add this here?</p>
+            <button onClick={() => setShowGotcha(false)} className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-semibold">Close</button>
           </div>
         </div>
       )}
