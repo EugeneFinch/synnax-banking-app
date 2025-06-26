@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, CreditCard, PiggyBank, TrendingUp, Shield, Zap, Target, CheckCircle, RefreshCw, DollarSign, Eye, EyeOff, Plus, ArrowUpRight, ArrowDownRight, Users, Copy, Star, Activity, Moon } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
+import { ethers } from 'ethers';
+import { BigNumber } from 'ethers';
+import { Contract } from 'ethers';
+import POOL_ABI from './abis/Pool.json';
+import DATA_PROVIDER_ABI from './abis/ProtocolDataProvider.json';
+
+// AAVE V3 Pool Addresses for Base
+const POOL_ADDRESSES_PROVIDER = '0xe20fCBdBfFC4Dd138cE812bA77181fEeD551eD2';
+const POOL_ADDRESS = '0xA238Dd80C259a72e81d7e4664a9801593F98d1c5'; // AAVE V3 Pool on Base
+const DATA_PROVIDER_ADDRESS = '0x2d098e6c8c3e2fC8bE32dE3FD5d10fC00C7e76B3'; // AAVE V3 Data Provider on Base
 
 // Add tooltip styles
 const tooltipStyles = `
@@ -54,11 +64,201 @@ const SynnaxBankingPlatform = () => {
   const [showIslamicModal, setShowIslamicModal] = useState(false);
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [showData, setShowData] = useState(true);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { ready, authenticated, user, login, logout } = usePrivy();
+
+  // Initialize Aave contracts on mount
+  useEffect(() => {
+    const initializeContracts = async () => {
+      try {
+        setIsLoading(true);
+        const contracts = await initializeAaveContracts();
+        if (!contracts) {
+          throw new Error('Failed to initialize Aave contracts');
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (ready && authenticated) {
+      initializeContracts();
+    }
+  }, [ready, authenticated]);
+
+  // Handle errors in Aave operations
+  const handleError = (error) => {
+    setError(error.message);
+    console.error('Aave operation failed:', error);
+  };
 
   // Redirect to gnosipay form
   const handleCardApply = () => {
     window.location.href = 'https://form.gnosipay.com';
+  };
+
+    // Initialize Aave V3 contracts
+  const initializeAaveContracts = async () => {
+    try {
+      // Check if wallet is connected
+      if (!window.ethereum) {
+        throw new Error('Please connect your wallet first');
+      }
+
+      // Initialize provider and signer
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const network = await provider.getNetwork();
+      const signer = provider.getSigner();
+
+      // Check if we're on Base mainnet (chainId 8453 in decimal)
+      if (network.chainId !== 8453) {
+        try {
+          // Try to switch to Base mainnet
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x2105' }], // 0x2105 is 8453 in hex
+          });
+          // Wait for network change
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (switchError) {
+          // This error code indicates that the chain has not been added to MetaMask
+          if (switchError.code === 4902) {
+            // Add Base network to MetaMask
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x2105',
+                chainName: 'Base Mainnet',
+                nativeCurrency: {
+                  name: 'Ethereum',
+                  symbol: 'ETH',
+                  decimals: 18
+                },
+                rpcUrls: ['https://mainnet.base.org'],
+                blockExplorerUrls: ['https://basescan.org']
+              }]
+            });
+          } else {
+            throw new Error('Failed to switch to Base mainnet');
+          }
+        }
+      }
+
+      // AAVE V3 Pool ABI (simplified)
+      const poolAbi = [
+        'function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external',
+        'function getReserveData(address asset) external view returns (uint256, uint256, uint256, uint256, uint256, uint256, uint40, address, address, address, address, uint8)',
+        'function getUserAccountData(address user) external view returns (uint256, uint256, uint256, uint256, uint256, uint256)'
+      ];
+
+      // Initialize Aave V3 Pool contract
+      const poolContract = new Contract(POOL_ADDRESS, poolAbi, signer);
+      
+      // Verify contract is initialized
+      if (!poolContract) {
+        throw new Error('Failed to initialize Aave V3 Pool contract');
+      }
+
+      return {
+        pool: poolContract,
+        signer,
+        provider
+      };
+    } catch (error) {
+      console.error('Error initializing Aave V3 contracts:', error);
+      setError(error.message);
+      throw error;
+    }
+  };
+
+  // Handle Aave V3 Deposit
+  const handleAaveDeposit = async (asset, amount) => {
+    try {
+      setIsLoading(true);
+      setError('');
+
+      // Check if wallet is connected
+      if (!window.ethereum) {
+        throw new Error('Please connect your wallet first');
+      }
+
+      // Validate input
+      if (!asset || amount === undefined || amount === '') {
+        throw new Error('Asset and amount are required');
+      }
+      
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        throw new Error('Please enter a valid amount');
+      }
+
+      // Initialize contracts and get pool instance
+      const { pool, signer } = await initializeAaveContracts();
+      const userAddress = await signer.getAddress();
+      
+      // Get the ERC20 token contract for approval
+      const tokenContract = new ethers.Contract(asset, [
+        'function approve(address spender, uint256 amount) returns (bool)',
+        'function decimals() view returns (uint8)',
+        'function balanceOf(address owner) view returns (uint256)'
+      ], signer);
+
+      // Get token decimals and user balance
+      const decimals = await tokenContract.decimals();
+      const userBalance = await tokenContract.balanceOf(userAddress);
+      
+      // Convert amount to the correct decimals
+      const amountWei = ethers.utils.parseUnits(amount.toString(), decimals);
+      
+      // Check if user has enough balance
+      if (userBalance.lt(amountWei)) {
+        throw new Error('Insufficient balance');
+      }
+
+      // Approve the asset for deposit
+      console.log(`Approving ${amount} tokens for Aave V3...`);
+      const approveTx = await tokenContract.approve(
+        POOL_ADDRESS, 
+        amountWei,
+        { gasLimit: 200000 }
+      );
+      
+      // Wait for approval to be mined
+      console.log('Waiting for approval confirmation...');
+      await approveTx.wait(1);
+      
+      // Execute deposit
+      console.log(`Depositing ${amount} to Aave V3...`);
+      const depositTx = await pool.supply(
+        asset,                    // asset address
+        amountWei,                // amount in wei
+        userAddress,              // onBehalfOf
+        0,                        // referralCode (0 for no referral)
+        { 
+          gasLimit: 300000,        // Higher gas limit for Base
+          gasPrice: ethers.utils.parseUnits('0.1', 'gwei')  // Reasonable gas price for Base
+        }
+      );
+      
+      // Wait for deposit to be mined
+      console.log('Waiting for deposit confirmation...');
+      
+      const receipt = await depositTx.wait();
+      console.log('Deposit successful:', receipt);
+      
+      // Show success message
+      alert('Deposit to Aave completed successfully!');
+      
+      // Refresh any necessary data
+      // You might want to update the UI or fetch new balances here
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Require login for live mode
@@ -229,9 +429,16 @@ const SynnaxBankingPlatform = () => {
     // Conventional Investment Options
     conventional: {
       low: [
-        { id: 'treasury', name: 'US Treasury Bills', apy: '5.2%', allocation: 40, risk: 'Very Low', protocol: 'Traditional Finance', type: 'conventional' },
-        { id: 'usdc-lending', name: 'USDC Lending', apy: '6.8%', allocation: 35, risk: 'Low', protocol: 'Compound', type: 'conventional' },
-        { id: 'stablecoin-lp', name: 'Stablecoin LP', apy: '7.5%', allocation: 25, risk: 'Low', protocol: 'Curve', type: 'conventional' }
+        { 
+          id: 'aave-usdc', 
+          name: 'USDC Lending (Aave)', 
+          apy: '7.2%', 
+          allocation: 100, 
+          risk: 'Very Low', 
+          protocol: 'Aave', 
+          type: 'conventional',
+          description: 'Lend USDC on Aave Base for stable returns'
+        }
       ],
       medium: [
         { id: 'treasury', name: 'US Treasury Bills', apy: '5.2%', allocation: 25, risk: 'Very Low', protocol: 'Traditional Finance', type: 'conventional' },
@@ -271,7 +478,24 @@ const SynnaxBankingPlatform = () => {
   const handleRiskSelection = (risk) => {
     setRiskProfile(risk);
     const bankingType = islamicBanking ? 'islamic' : 'conventional';
-    setSelectedStrategies(investmentOptions[bankingType][risk]);
+    
+    // In live mode, only allow Aave USDC lending for conservative strategy
+    if (isLiveMode && risk === 'low') {
+      setSelectedStrategies([
+        { 
+          id: 'aave-usdc', 
+          name: 'USDC Lending (Aave)', 
+          apy: '7.2%', 
+          allocation: 100, 
+          risk: 'Very Low', 
+          protocol: 'Aave', 
+          type: 'conventional',
+          description: 'Lend USDC on Aave Base for stable returns'
+        }
+      ]);
+    } else {
+      setSelectedStrategies(investmentOptions[bankingType][risk]);
+    }
     setStep(3);
   };
 
@@ -667,7 +891,7 @@ const SynnaxBankingPlatform = () => {
                   
                   <button
                     onClick={() => setShowIslamicModal(true)}
-                    disabled={!depositAmount || parseFloat(depositAmount) <= 0 || parseFloat(depositAmount) > userData.currentBalance}
+                    disabled={!isLiveMode && (!depositAmount || parseFloat(depositAmount) <= 0 || parseFloat(depositAmount) > userData.currentBalance)}
                     className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-600 text-white font-bold rounded-xl transition-colors"
                   >
                     Choose Investment Strategy
@@ -855,6 +1079,47 @@ const SynnaxBankingPlatform = () => {
                 </div>
               </div>
 
+              {/* Aave V3 Deposit Section */}
+              <div className="mb-6 bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">AAVE V3 Deposit (Base Network)</h3>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Amount to Deposit (USDC)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    placeholder="0.00"
+                    className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                  />
+                </div>
+                <button
+                  onClick={() => handleAaveDeposit('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', depositAmount)}
+                  disabled={isLoading || !depositAmount}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span>Processing...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center space-x-2">
+                      <DollarSign className="w-5 h-5" />
+                      <span>Deposit to Aave V3</span>
+                    </div>
+                  )}
+                </button>
+                {error && (
+                  <div className="mt-3 text-sm text-red-400">
+                    Error: {error}
+                  </div>
+                )}
+              </div>
+
               {/* Portfolio Breakdown */}
               <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6">
                 <div className="flex justify-between items-center mb-6">
@@ -879,6 +1144,11 @@ const SynnaxBankingPlatform = () => {
                             <span className="px-2 py-1 bg-emerald-900/50 text-emerald-400 text-xs font-medium rounded-full flex items-center">
                               <Moon className="w-3 h-3 mr-1" />
                               Halal
+                            </span>
+                          )}
+                          {item.protocol === 'Aave' && (
+                            <span className="px-2 py-1 bg-emerald-900/50 text-emerald-400 text-xs font-medium rounded-full">
+                              Aave Base
                             </span>
                           )}
                         </div>
