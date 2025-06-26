@@ -16,17 +16,33 @@ const SynnaxBankingPlatform = () => {
   const [selectedTrader, setSelectedTrader] = useState(null);
   const [islamicBanking, setIslamicBanking] = useState(null);
   const [showIslamicModal, setShowIslamicModal] = useState(false);
+  const [isLiveMode, setIsLiveMode] = useState(false);
+  const [showData, setShowData] = useState(true);
   const { ready, authenticated, user, login, logout } = usePrivy();
+
+  // Redirect to gnosipay form
+  const handleCardApply = () => {
+    window.location.href = 'https://form.gnosipay.com';
+  };
+
+  // Require login for live mode
+  const handleLiveMode = () => {
+    if (!authenticated) {
+      login();
+    } else {
+      setIsLiveMode(true);
+    }
+  };
 
   // User data
   const userData = {
-    currentBalance: 25847.32,
-    savingsBalance: 18650.00,
-    creditLimit: 10000,
-    creditUsed: 2450,
-    totalDeposits: 44497.32,
+    currentBalance: isLiveMode ? 0 : 25847.32,
+    savingsBalance: isLiveMode ? 0 : 18650.00,
+    creditLimit: isLiveMode ? 0 : 10000,
+    creditUsed: isLiveMode ? 0 : 2450,
+    totalDeposits: isLiveMode ? 0 : 44497.32,
     copyTradingBalance: 0,
-    cardTransactions: [
+    cardTransactions: isLiveMode ? [] : [
       { id: 1, merchant: 'Amazon', amount: -89.99, date: '2025-06-18', type: 'purchase' },
       { id: 2, merchant: 'Starbucks', amount: -12.50, date: '2025-06-17', type: 'purchase' },
       { id: 3, merchant: 'Deposit', amount: 1000.00, date: '2025-06-16', type: 'deposit' },
@@ -346,6 +362,43 @@ const SynnaxBankingPlatform = () => {
         <p className="text-gray-300">Crypto credit card, intelligent investments & copy trading</p>
       </div>
 
+      {/* Mode Toggle */}
+      <div className="flex justify-center items-center mb-8">
+        <div 
+          className="flex items-center space-x-4 cursor-pointer"
+          onClick={() => {
+            if (!authenticated && isLiveMode) {
+              login();
+            } else {
+              setIsLiveMode(!isLiveMode);
+            }
+          }}
+        >
+          <div className="relative">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="mode-toggle"
+                className="sr-only"
+                checked={isLiveMode}
+              />
+              <div className={`w-16 h-8 rounded-full transition-colors duration-300 ease-in-out ${
+                isLiveMode ? 'bg-emerald-500' : 'bg-gray-700'
+              }`}>
+                <div className={`dot absolute left-1 top-1 ${
+                  isLiveMode ? 'translate-x-full bg-white' : 'bg-gray-300'
+                } w-6 h-6 rounded-full transition-transform duration-300 ease-in-out`} />
+              </div>
+            </div>
+            <label htmlFor="mode-toggle" className="ml-2">
+              <span className={`font-medium ${
+                isLiveMode ? 'text-emerald-400' : 'text-gray-400'
+              }`}>{isLiveMode ? 'Live' : 'Demo'}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       {/* Main Navigation */}
       <div className="flex justify-center mb-8">
         <div className="glass bg-gradient-to-br from-[#181A20] via-[#1a2a23] to-[#23272f] rounded-2xl p-2 flex space-x-2">
@@ -450,6 +503,15 @@ const SynnaxBankingPlatform = () => {
               <div className="mb-6">
                 <p className="text-green-400 text-sm mb-1">Card Number</p>
                 <p className="text-xl font-mono text-white tracking-wider">•••• •••• •••• 8492</p>
+              </div>
+
+              <div className="mt-8">
+                <button
+                  onClick={handleCardApply}
+                  className="w-full px-6 py-3 bg-gradient-to-br from-green-500 to-emerald-500 hover:from-emerald-500 hover:to-green-700 text-white font-bold rounded-xl shadow-lg transition-all"
+                >
+                  Apply for Card
+                </button>
               </div>
               
               <div className="flex justify-between">
