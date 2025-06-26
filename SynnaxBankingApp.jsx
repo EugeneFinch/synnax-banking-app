@@ -2,6 +2,42 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight, CreditCard, PiggyBank, TrendingUp, Shield, Zap, Target, CheckCircle, RefreshCw, DollarSign, Eye, EyeOff, Plus, ArrowUpRight, ArrowDownRight, Users, Copy, Star, Activity, Moon } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 
+// Add tooltip styles
+const tooltipStyles = `
+  .tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+  }
+
+  .tooltip .tooltip-text {
+    visibility: hidden;
+    width: 240px;
+    background-color: #1a1a1a;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -120px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+  }
+`;
+
+// Create style tag for tooltips
+const style = document.createElement('style');
+style.textContent = tooltipStyles;
+document.head.appendChild(style);
+
 const SynnaxBankingPlatform = () => {
   const [activeTab, setActiveTab] = useState('current');
   const [showBalance, setShowBalance] = useState(true);
@@ -362,43 +398,6 @@ const SynnaxBankingPlatform = () => {
         <p className="text-gray-300">Crypto credit card, intelligent investments & copy trading</p>
       </div>
 
-      {/* Mode Toggle */}
-      <div className="flex justify-center items-center mb-8">
-        <div 
-          className="flex items-center space-x-4 cursor-pointer"
-          onClick={() => {
-            if (!authenticated && isLiveMode) {
-              login();
-            } else {
-              setIsLiveMode(!isLiveMode);
-            }
-          }}
-        >
-          <div className="relative">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="mode-toggle"
-                className="sr-only"
-                checked={isLiveMode}
-              />
-              <div className={`w-16 h-8 rounded-full transition-colors duration-300 ease-in-out ${
-                isLiveMode ? 'bg-emerald-500' : 'bg-gray-700'
-              }`}>
-                <div className={`dot absolute left-1 top-1 ${
-                  isLiveMode ? 'translate-x-full bg-white' : 'bg-gray-300'
-                } w-6 h-6 rounded-full transition-transform duration-300 ease-in-out`} />
-              </div>
-            </div>
-            <label htmlFor="mode-toggle" className="ml-2">
-              <span className={`font-medium ${
-                isLiveMode ? 'text-emerald-400' : 'text-gray-400'
-              }`}>{isLiveMode ? 'Live' : 'Demo'}</span>
-            </label>
-          </div>
-        </div>
-      </div>
-
       {/* Main Navigation */}
       <div className="flex justify-center mb-8">
         <div className="glass bg-gradient-to-br from-[#181A20] via-[#1a2a23] to-[#23272f] rounded-2xl p-2 flex space-x-2">
@@ -502,26 +501,40 @@ const SynnaxBankingPlatform = () => {
               
               <div className="mb-6">
                 <p className="text-green-400 text-sm mb-1">Card Number</p>
-                <p className="text-xl font-mono text-white tracking-wider">•••• •••• •••• 8492</p>
+                <p className="text-xl font-mono text-white tracking-wider">
+                  {isLiveMode ? '•••• •••• •••• ••••' : '•••• •••• •••• 8492'}
+                </p>
               </div>
 
-              <div className="mt-8">
-                <button
-                  onClick={handleCardApply}
-                  className="w-full px-6 py-3 bg-gradient-to-br from-green-500 to-emerald-500 hover:from-emerald-500 hover:to-green-700 text-white font-bold rounded-xl shadow-lg transition-all"
-                >
-                  Apply for Card
-                </button>
-              </div>
-              
-              <div className="flex justify-between">
-                <div>
-                  <p className="text-green-400 text-sm">Valid Thru</p>
-                  <p className="text-white font-semibold">12/27</p>
+              {isLiveMode ? (
+                <div className="mt-8">
+                  <div className="tooltip">
+                    <div className="flex justify-center">
+                      <a 
+                        href="https://gnosispay.com/card"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl shadow-lg transition-all flex items-center justify-center"
+                      >
+                        <span className="text-emerald-400">Request Card through Gnosis</span>
+                        <ArrowRight className="ml-2 w-5 h-5 text-emerald-400" />
+                      </a>
+                    </div>
+                    <div className="tooltip-text">
+                      Synnax partners with Gnosis to enable credit card functionality
+                    </div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-green-400 text-sm">Credit backed by</p>
-                  <p className="text-white font-semibold">Your USDC deposits</p>
+              ) : null}
+              
+              <div className="flex justify-between mt-6">
+                <div>
+                  <p className="text-green-400 text-sm mb-1">Valid Thru</p>
+                  <p className="text-xl font-mono text-white">12/27</p>
+                </div>
+                <div>
+                  <p className="text-green-400 text-sm mb-1">Credit backed by</p>
+                  <p className="text-xl font-mono text-white">Your USDC deposits</p>
                 </div>
               </div>
             </div>
