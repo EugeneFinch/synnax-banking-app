@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, CreditCard, PiggyBank, TrendingUp, Shield, Zap, Target, CheckCircle, RefreshCw, DollarSign, Eye, EyeOff, Plus, ArrowUpRight, ArrowDownRight, Users, Copy, Star, Activity, Moon } from 'lucide-react';
+import { usePrivy } from '@privy-io/react-auth';
 
 const SynnaxBankingPlatform = () => {
   const [activeTab, setActiveTab] = useState('current');
@@ -15,6 +16,7 @@ const SynnaxBankingPlatform = () => {
   const [selectedTrader, setSelectedTrader] = useState(null);
   const [islamicBanking, setIslamicBanking] = useState(null);
   const [showIslamicModal, setShowIslamicModal] = useState(false);
+  const { ready, authenticated, user, login, logout } = usePrivy();
 
   // User data
   const userData = {
@@ -301,8 +303,38 @@ const SynnaxBankingPlatform = () => {
 
   const availableCredit = userData.creditLimit - userData.creditUsed;
 
+  function shortenAddress(addr) {
+    if (!addr) return '';
+    return addr.slice(0, 6) + '...' + addr.slice(-4);
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-6 min-h-screen text-white">
+      {/* Privy Login Button - Top Left Corner */}
+      <div className="fixed top-4 right-4 z-50">
+        {!authenticated ? (
+          <button
+            onClick={login}
+            className="px-6 py-2 text-base bg-gradient-to-br from-green-400 via-emerald-500 to-green-700 hover:from-emerald-500 hover:to-green-900 text-white font-extrabold rounded-xl shadow-xl border-2 border-emerald-300 ring-2 ring-emerald-400/40 transition-all"
+            disabled={!ready}
+          >
+            Log In
+          </button>
+        ) : (
+          <div className="flex items-center space-x-2 bg-gray-800/80 px-3 py-2 rounded-xl shadow-lg">
+            <span className="font-semibold text-emerald-400">{user?.email || 'Account'}</span>
+            <span className="font-mono text-emerald-300 bg-emerald-900/40 px-2 py-1 rounded">
+              {shortenAddress(user?.wallet?.address || user?.wallets?.[0]?.address)}
+            </span>
+            <button
+              onClick={logout}
+              className="ml-2 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded"
+            >
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
       {/* Header */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center mb-4">
