@@ -353,7 +353,7 @@ const SynnaxBankingPlatform = () => {
     sum + (parseFloat(item.apy) * parseFloat(item.amount) / totalValue), 0
   ).toFixed(1);
 
-  const availableCredit = userData.creditLimit - userData.creditUsed;
+  const availableCredit = isLiveMode ? 0 : userData.creditLimit - userData.creditUsed;
 
   function shortenAddress(addr) {
     if (!addr) return '';
@@ -396,6 +396,43 @@ const SynnaxBankingPlatform = () => {
           </div>
         </div>
         <p className="text-gray-300">Crypto credit card, intelligent investments & copy trading</p>
+      </div>
+
+      {/* Mode Toggle */}
+      <div className="flex justify-center items-center mb-8">
+        <div 
+          className="flex items-center space-x-4 cursor-pointer"
+          onClick={() => {
+            if (!authenticated && isLiveMode) {
+              login();
+            } else {
+              setIsLiveMode(!isLiveMode);
+            }
+          }}
+        >
+          <div className="relative">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="mode-toggle"
+                className="sr-only"
+                checked={isLiveMode}
+              />
+              <div className={`w-16 h-8 rounded-full transition-colors duration-300 ease-in-out ${
+                isLiveMode ? 'bg-emerald-500' : 'bg-gray-700'
+              }`}>
+                <div className={`dot absolute left-1 top-1 ${
+                  isLiveMode ? 'translate-x-full bg-white' : 'bg-gray-300'
+                } w-6 h-6 rounded-full transition-transform duration-300 ease-in-out`} />
+              </div>
+            </div>
+            <label htmlFor="mode-toggle" className="ml-2">
+              <span className={`font-medium ${
+                isLiveMode ? 'text-emerald-400' : 'text-gray-400'
+              }`}>{isLiveMode ? 'Live' : 'Demo'}</span>
+            </label>
+          </div>
+        </div>
       </div>
 
       {/* Main Navigation */}
