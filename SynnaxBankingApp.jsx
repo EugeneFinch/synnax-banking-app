@@ -10,7 +10,15 @@ import DATA_PROVIDER_ABI from './abis/ProtocolDataProvider.json';
 // AAVE V3 Pool Addresses for Base
 const POOL_ADDRESSES_PROVIDER = '0xe20fCBdBfFC4Dd138cE812bA77181fEeD551eD2';
 const POOL_ADDRESS = '0xA238Dd80C259a72e81d7e4664a9801593F98d1c5'; // AAVE V3 Pool on Base
-const DATA_PROVIDER_ADDRESS = '0x2d098e6c8c3e2fC8bE32dE3FD5d10fC00C7e76B3'; // AAVE V3 Data Provider on Base
+const DATA_PROVIDER_ADDRESS = '0x65285E9dfab318f57051ab2b139ccCf232945451'; // AAVE V3 Data Provider on Base (checksummed)
+
+// USDC and aUSDC addresses for Base
+const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+const AUSDC_ADDRESS = '0x4e65fe4dba92790696d040ac24aa414708f5c0ab'; // aBasUSDC (Aave Base USDC)
+const ERC20_ABI = [
+  'function balanceOf(address owner) view returns (uint256)',
+  'function decimals() view returns (uint8)'
+];
 
 // Add tooltip styles
 const tooltipStyles = `
@@ -66,7 +74,16 @@ const SynnaxBankingPlatform = () => {
   const [showData, setShowData] = useState(true);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { ready, authenticated, user, login, logout } = usePrivy();
+  const { user, ready, authenticated, login, logout } = usePrivy();
+  const provider = new ethers.providers.JsonRpcProvider('https://mainnet.base.org');
+
+  // Add state for live balances
+  const [usdcBalance, setUsdcBalance] = useState(null);
+  const [aaveBalance, setAaveBalance] = useState(null);
+
+  // Add state for loading and error for balances
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [balanceError, setBalanceError] = useState('');
 
   // Initialize Aave contracts on mount
   useEffect(() => {
@@ -88,6 +105,93 @@ const SynnaxBankingPlatform = () => {
       initializeContracts();
     }
   }, [ready, authenticated]);
+
+  // Refetch balances function with loading and error
+  const refetchBalances = async () => {
+    setBalanceLoading(true);
+    setBalanceError('');
+    try {
+      // Get the address inside the function, after checking readiness
+      const userAddress = user?.wallet?.address || user?.wallets?.[0]?.address;
+      if (!ready || !authenticated || !userAddress) {
+        setBalanceLoading(false);
+        setBalanceError('Wallet not ready. Please log in.');
+        return;
+      }
+      // Sanity check: log provider chainId and user address
+      const network = await provider.getNetwork();
+      console.log('Provider RPC:', provider.connection?.url || provider.connection || provider);
+      console.log('Network chainId:', network.chainId);
+      console.log('User address:', userAddress);
+      console.log('USDC address:', USDC_ADDRESS);
+      console.log('aUSDC address:', AUSDC_ADDRESS);
+      if (network.chainId !== 8453) {
+        setBalanceError('Not connected to Base mainnet (chainId 8453).');
+        setBalanceLoading(false);
+        return;
+      }
+      // Minimal ERC20 ABI
+      const minimalAbi = [
+        'function balanceOf(address owner) view returns (uint256)',
+        'function decimals() view returns (uint8)'
+      ];
+      // USDC
+      const usdcContract = new ethers.Contract(USDC_ADDRESS, minimalAbi, provider);
+      let usdcDecimals = 6;
+      try {
+        usdcDecimals = await usdcContract.decimals();
+      } catch (err) {
+        console.warn('USDC.decimals() failed, falling back to 6');
+      }
+      let usdcRaw;
+      try {
+        usdcRaw = await usdcContract.balanceOf(userAddress);
+        console.log('USDC balanceOf result:', usdcRaw.toString(), 'for address:', userAddress);
+      } catch (err) {
+        console.error('USDC balanceOf error:', err, 'for address:', userAddress);
+        setBalanceError('USDC balanceOf call failed: ' + (err.message || err));
+        setUsdcBalance(null);
+        setAaveBalance(null);
+        setBalanceLoading(false);
+        return;
+      }
+      const usdc = Number(ethers.utils.formatUnits(usdcRaw, usdcDecimals));
+      setUsdcBalance(usdc);
+      // aUSDC
+      const aUsdcContract = new ethers.Contract(AUSDC_ADDRESS, minimalAbi, provider);
+      let aUsdcDecimals = 6;
+      try {
+        aUsdcDecimals = await aUsdcContract.decimals();
+      } catch (err) {
+        console.warn('aUSDC.decimals() failed, falling back to 6');
+      }
+      let aUsdcRaw;
+      try {
+        aUsdcRaw = await aUsdcContract.balanceOf(userAddress);
+      } catch (err) {
+        console.error('aUSDC balanceOf error:', err);
+        setBalanceError('aUSDC balanceOf call failed: ' + (err.message || err));
+        setUsdcBalance(null);
+        setAaveBalance(null);
+        setBalanceLoading(false);
+        return;
+      }
+      setAaveBalance(Number(ethers.utils.formatUnits(aUsdcRaw, aUsdcDecimals)));
+    } catch (err) {
+      setBalanceError('Failed to fetch balances: ' + err.message);
+      setUsdcBalance(null);
+      setAaveBalance(null);
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
+
+  // Use refetchBalances in useEffect and after deposit
+  useEffect(() => {
+    if (ready && authenticated && (user?.wallet?.address || user?.wallets?.[0]?.address)) {
+      refetchBalances();
+    }
+  }, [ready, authenticated, user]);
 
   // Handle errors in Aave operations
   const handleError = (error) => {
@@ -254,6 +358,7 @@ const SynnaxBankingPlatform = () => {
       
       // Refresh any necessary data
       // You might want to update the UI or fetch new balances here
+      await refetchBalances();
     } catch (error) {
       handleError(error);
     } finally {
@@ -702,6 +807,18 @@ const SynnaxBankingPlatform = () => {
       {activeTab === 'current' && (
         <div className="space-y-6">
           {/* Account Overview */}
+          <div className="flex justify-end mb-2">
+            <button
+              onClick={refetchBalances}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold disabled:opacity-50"
+              disabled={balanceLoading}
+            >
+              {balanceLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+          {balanceError && (
+            <div className="mb-2 text-red-400 font-semibold">{balanceError}</div>
+          )}
           <div className="grid md:grid-cols-3 gap-6">
             <div className="glass bg-gradient-to-br from-[#181A20] via-[#1a2a23] to-[#23272f] p-6">
               <div className="flex items-center justify-between mb-4">
@@ -714,32 +831,34 @@ const SynnaxBankingPlatform = () => {
                 </button>
               </div>
               <p className="text-3xl font-bold text-white">
-                {showBalance ? `$${userData.currentBalance.toLocaleString()}` : '••••••'}
+                {balanceLoading ? 'Loading...' : (showBalance ? (isLiveMode && usdcBalance !== null ? `$${usdcBalance.toLocaleString(undefined, {maximumFractionDigits:2})}` : `$${userData.currentBalance.toLocaleString()}`) : '••••••')}
               </p>
               <p className="text-sm text-gray-400 mt-2">USDC Balance</p>
             </div>
-
             <div className="glass bg-gradient-to-br from-[#181A20] via-[#1a2a23] to-[#23272f] p-6">
               <h3 className="text-lg font-semibold text-green-400 mb-4">Credit Available</h3>
-              <p className="text-3xl font-bold text-white">${availableCredit.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-white">
+                {balanceLoading ? 'Loading...' : (isLiveMode && aaveBalance !== null ? `$${(aaveBalance * 0.5).toLocaleString(undefined, {maximumFractionDigits:2})}` : `$${availableCredit.toLocaleString()}`)}
+              </p>
               <div className="mt-4">
                 <div className="flex justify-between text-sm text-gray-400 mb-2">
-                  <span>Used: ${userData.creditUsed.toLocaleString()}</span>
-                  <span>Limit: ${userData.creditLimit.toLocaleString()}</span>
+                  <span>Used: $0</span>
+                  <span>Limit: {balanceLoading ? 'Loading...' : (isLiveMode && aaveBalance !== null ? `$${(aaveBalance * 0.5).toLocaleString(undefined, {maximumFractionDigits:2})}` : `$${userData.creditLimit.toLocaleString()}`)}</span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-2">
                   <div 
                     className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${(userData.creditUsed / userData.creditLimit) * 100}%` }}
+                    style={{ width: `0%` }}
                   />
                 </div>
               </div>
             </div>
-
             <div className="glass bg-gradient-to-br from-[#181A20] via-[#1a2a23] to-[#23272f] p-6">
-              <h3 className="text-lg font-semibold text-green-400 mb-4">Total Deposits</h3>
-              <p className="text-3xl font-bold text-white">${userData.totalDeposits.toLocaleString()}</p>
-              <p className="text-sm text-gray-400 mt-2">Lifetime deposits with Synnax</p>
+              <h3 className="text-lg font-semibold text-green-400 mb-4">Savings Account</h3>
+              <p className="text-3xl font-bold text-white">
+                {balanceLoading ? 'Loading...' : (isLiveMode && aaveBalance !== null ? `$${aaveBalance.toLocaleString(undefined, {maximumFractionDigits:2})}` : `$${userData.savingsBalance.toLocaleString()}`)}
+              </p>
+              <p className="text-sm text-gray-400 mt-2">Current deposit in Aave</p>
             </div>
           </div>
 
@@ -756,7 +875,7 @@ const SynnaxBankingPlatform = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-green-400 text-sm">Available Credit</p>
-                  <p className="text-2xl font-bold text-white">${availableCredit.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-white">{balanceLoading ? 'Loading...' : (isLiveMode && aaveBalance !== null ? `$${(aaveBalance * 0.5).toLocaleString(undefined, {maximumFractionDigits:2})}` : `$${availableCredit.toLocaleString()}`)}</p>
                 </div>
               </div>
               
@@ -845,13 +964,17 @@ const SynnaxBankingPlatform = () => {
               <div className="grid md:grid-cols-2 gap-6 mb-8">
                 <div className="bg-gradient-to-br from-emerald-800/30 to-emerald-900/30 backdrop-blur-sm border border-emerald-700/30 rounded-2xl p-6">
                   <h3 className="text-lg font-semibold text-emerald-400 mb-4">Savings Balance</h3>
-                  <p className="text-3xl font-bold text-white">${userData.savingsBalance.toLocaleString()}</p>
+                  <p className="text-3xl font-bold text-white">
+                    {isLiveMode && aaveBalance !== null ? `$${aaveBalance.toLocaleString(undefined, {maximumFractionDigits:2})}` : `$${userData.savingsBalance.toLocaleString()}`}
+                  </p>
                   <p className="text-sm text-gray-400 mt-2">Currently earning yield</p>
                 </div>
                 
                 <div className="bg-gradient-to-br from-emerald-800/30 to-emerald-900/30 backdrop-blur-sm border border-emerald-700/30 rounded-2xl p-6">
                   <h3 className="text-lg font-semibold text-emerald-400 mb-4">Available to Invest</h3>
-                  <p className="text-3xl font-bold text-white">${userData.currentBalance.toLocaleString()}</p>
+                  <p className="text-3xl font-bold text-white">
+                    {isLiveMode && usdcBalance !== null ? `$${usdcBalance.toLocaleString(undefined, {maximumFractionDigits:2})}` : `$${userData.currentBalance.toLocaleString()}`}
+                  </p>
                   <p className="text-sm text-gray-400 mt-2">From current account</p>
                 </div>
               </div>
@@ -1252,8 +1375,10 @@ const SynnaxBankingPlatform = () => {
             
             <div className="bg-gradient-to-br from-emerald-800/30 to-emerald-900/30 backdrop-blur-sm border border-emerald-700/30 rounded-2xl p-6">
               <h3 className="text-lg font-semibold text-emerald-400 mb-4">Available to Copy</h3>
-              <p className="text-3xl font-bold text-white">${userData.currentBalance.toLocaleString()}</p>
-              <p className="text-sm text-gray-400 mt-2">From current account</p>
+              <p className="text-3xl font-bold text-white">
+                {balanceLoading ? 'Loading...' : (isLiveMode && usdcBalance !== null ? `$${usdcBalance.toLocaleString(undefined, {maximumFractionDigits:2})}` : `$${userData.currentBalance.toLocaleString()}`)}
+              </p>
+              <p className="text-sm text-gray-400 mt-2">USDC available to invest in copy trading</p>
             </div>
 
             <div className="bg-gradient-to-br from-emerald-800/30 to-emerald-900/30 backdrop-blur-sm border border-emerald-700/30 rounded-2xl p-6">
