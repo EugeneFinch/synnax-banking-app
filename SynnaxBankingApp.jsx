@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, CreditCard, PiggyBank, TrendingUp, Shield, Zap, Target, CheckCircle, RefreshCw, DollarSign, Eye, EyeOff, Plus, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { ArrowRight, CreditCard, PiggyBank, TrendingUp, Shield, Zap, Target, CheckCircle, RefreshCw, DollarSign, Eye, EyeOff, Plus, ArrowUpRight, ArrowDownRight, Users, Copy, Star, Activity, Moon } from 'lucide-react';
 
 const SynnaxBankingPlatform = () => {
   const [activeTab, setActiveTab] = useState('current');
@@ -11,6 +11,10 @@ const SynnaxBankingPlatform = () => {
   const [portfolio, setPortfolio] = useState([]);
   const [isRebalancing, setIsRebalancing] = useState(false);
   const [totalAllocation, setTotalAllocation] = useState(100);
+  const [copyTradingAmount, setCopyTradingAmount] = useState('');
+  const [selectedTrader, setSelectedTrader] = useState(null);
+  const [islamicBanking, setIslamicBanking] = useState(null);
+  const [showIslamicModal, setShowIslamicModal] = useState(false);
 
   // User data
   const userData = {
@@ -19,6 +23,7 @@ const SynnaxBankingPlatform = () => {
     creditLimit: 10000,
     creditUsed: 2450,
     totalDeposits: 44497.32,
+    copyTradingBalance: 0,
     cardTransactions: [
       { id: 1, merchant: 'Amazon', amount: -89.99, date: '2025-06-18', type: 'purchase' },
       { id: 2, merchant: 'Starbucks', amount: -12.50, date: '2025-06-17', type: 'purchase' },
@@ -27,6 +32,114 @@ const SynnaxBankingPlatform = () => {
       { id: 5, merchant: 'Deposit', amount: 500.00, date: '2025-06-14', type: 'deposit' }
     ]
   };
+
+  // Copy Trading Data
+  const traders = [
+    {
+      id: 1,
+      name: "Alex Chen",
+      username: "@alex_crypto",
+      avatar: "AC",
+      monthlyPnL: 2847.50,
+      totalPnL: 15680.25,
+      sharpeRatio: 2.8,
+      winRate: 78,
+      totalTrades: 156,
+      followers: 1247,
+      minCopyAmount: 100,
+      maxCopyAmount: 10000,
+      strategy: "Momentum Trading",
+      riskLevel: "Medium",
+      isVerified: true,
+      isActive: true,
+      performance: [
+        { month: 'Jan', pnl: 1200 },
+        { month: 'Feb', pnl: -450 },
+        { month: 'Mar', pnl: 2100 },
+        { month: 'Apr', pnl: 1800 },
+        { month: 'May', pnl: 3200 },
+        { month: 'Jun', pnl: 2847 }
+      ]
+    },
+    {
+      id: 2,
+      name: "Sarah Williams",
+      username: "@sarah_defi",
+      avatar: "SW",
+      monthlyPnL: 1890.75,
+      totalPnL: 8920.50,
+      sharpeRatio: 3.2,
+      winRate: 85,
+      totalTrades: 89,
+      followers: 892,
+      minCopyAmount: 250,
+      maxCopyAmount: 5000,
+      strategy: "DeFi Yield Farming",
+      riskLevel: "Low",
+      isVerified: true,
+      isActive: true,
+      performance: [
+        { month: 'Jan', pnl: 800 },
+        { month: 'Feb', pnl: 1200 },
+        { month: 'Mar', pnl: 950 },
+        { month: 'Apr', pnl: 1400 },
+        { month: 'May', pnl: 1600 },
+        { month: 'Jun', pnl: 1890 }
+      ]
+    },
+    {
+      id: 3,
+      name: "Mike Rodriguez",
+      username: "@mike_scalper",
+      avatar: "MR",
+      monthlyPnL: 4250.00,
+      totalPnL: 22450.75,
+      sharpeRatio: 1.9,
+      winRate: 65,
+      totalTrades: 342,
+      followers: 2156,
+      minCopyAmount: 500,
+      maxCopyAmount: 15000,
+      strategy: "High-Frequency Scalping",
+      riskLevel: "High",
+      isVerified: true,
+      isActive: true,
+      performance: [
+        { month: 'Jan', pnl: 2800 },
+        { month: 'Feb', pnl: -1200 },
+        { month: 'Mar', pnl: 4500 },
+        { month: 'Apr', pnl: 3200 },
+        { month: 'May', pnl: 5800 },
+        { month: 'Jun', pnl: 4250 }
+      ]
+    },
+    {
+      id: 4,
+      name: "Emma Thompson",
+      username: "@emma_arbitrage",
+      avatar: "ET",
+      monthlyPnL: 1650.25,
+      totalPnL: 9870.00,
+      sharpeRatio: 4.1,
+      winRate: 92,
+      totalTrades: 67,
+      followers: 567,
+      minCopyAmount: 100,
+      maxCopyAmount: 3000,
+      strategy: "Arbitrage & MEV",
+      riskLevel: "Low",
+      isVerified: true,
+      isActive: false,
+      performance: [
+        { month: 'Jan', pnl: 1200 },
+        { month: 'Feb', pnl: 1400 },
+        { month: 'Mar', pnl: 1100 },
+        { month: 'Apr', pnl: 1600 },
+        { month: 'May', pnl: 1800 },
+        { month: 'Jun', pnl: 1650 }
+      ]
+    }
+  ];
 
   const riskProfiles = {
     low: {
@@ -59,28 +172,52 @@ const SynnaxBankingPlatform = () => {
   };
 
   const investmentOptions = {
-    low: [
-      { id: 'treasury', name: 'US Treasury Bills', apy: '5.2%', allocation: 40, risk: 'Very Low', protocol: 'Traditional Finance' },
-      { id: 'usdc-lending', name: 'USDC Lending', apy: '6.8%', allocation: 35, risk: 'Low', protocol: 'Compound' },
-      { id: 'stablecoin-lp', name: 'Stablecoin LP', apy: '7.5%', allocation: 25, risk: 'Low', protocol: 'Curve' }
-    ],
-    medium: [
-      { id: 'treasury', name: 'US Treasury Bills', apy: '5.2%', allocation: 25, risk: 'Very Low', protocol: 'Traditional Finance' },
-      { id: 'blue-chip', name: 'Blue Chip Stocks', apy: '12.5%', allocation: 30, risk: 'Medium', protocol: 'Tokenized Assets' },
-      { id: 'defi-lending', name: 'DeFi Lending', apy: '11.2%', allocation: 25, risk: 'Medium', protocol: 'Aave' },
-      { id: 'yield-farming', name: 'Yield Farming', apy: '18.7%', allocation: 20, risk: 'Medium-High', protocol: 'Uniswap V3' }
-    ],
-    high: [
-      { id: 'blue-chip', name: 'Blue Chip Stocks', apy: '12.5%', allocation: 20, risk: 'Medium', protocol: 'Tokenized Assets' },
-      { id: 'defi-lending', name: 'DeFi Lending', apy: '11.2%', allocation: 25, risk: 'Medium', protocol: 'Aave' },
-      { id: 'yield-farming', name: 'Yield Farming', apy: '18.7%', allocation: 30, risk: 'Medium-High', protocol: 'Uniswap V3' },
-      { id: 'liquidity-mining', name: 'Liquidity Mining', apy: '24.3%', allocation: 25, risk: 'High', protocol: 'SushiSwap' }
-    ]
+    // Conventional Investment Options
+    conventional: {
+      low: [
+        { id: 'treasury', name: 'US Treasury Bills', apy: '5.2%', allocation: 40, risk: 'Very Low', protocol: 'Traditional Finance', type: 'conventional' },
+        { id: 'usdc-lending', name: 'USDC Lending', apy: '6.8%', allocation: 35, risk: 'Low', protocol: 'Compound', type: 'conventional' },
+        { id: 'stablecoin-lp', name: 'Stablecoin LP', apy: '7.5%', allocation: 25, risk: 'Low', protocol: 'Curve', type: 'conventional' }
+      ],
+      medium: [
+        { id: 'treasury', name: 'US Treasury Bills', apy: '5.2%', allocation: 25, risk: 'Very Low', protocol: 'Traditional Finance', type: 'conventional' },
+        { id: 'blue-chip', name: 'Blue Chip Stocks', apy: '12.5%', allocation: 30, risk: 'Medium', protocol: 'Tokenized Assets', type: 'conventional' },
+        { id: 'defi-lending', name: 'DeFi Lending', apy: '11.2%', allocation: 25, risk: 'Medium', protocol: 'Aave', type: 'conventional' },
+        { id: 'yield-farming', name: 'Yield Farming', apy: '18.7%', allocation: 20, risk: 'Medium-High', protocol: 'Uniswap V3', type: 'conventional' }
+      ],
+      high: [
+        { id: 'blue-chip', name: 'Blue Chip Stocks', apy: '12.5%', allocation: 20, risk: 'Medium', protocol: 'Tokenized Assets', type: 'conventional' },
+        { id: 'defi-lending', name: 'DeFi Lending', apy: '11.2%', allocation: 25, risk: 'Medium', protocol: 'Aave', type: 'conventional' },
+        { id: 'yield-farming', name: 'Yield Farming', apy: '18.7%', allocation: 30, risk: 'Medium-High', protocol: 'Uniswap V3', type: 'conventional' },
+        { id: 'liquidity-mining', name: 'Liquidity Mining', apy: '24.3%', allocation: 25, risk: 'High', protocol: 'SushiSwap', type: 'conventional' }
+      ]
+    },
+    // Islamic Finance Options (Halal)
+    islamic: {
+      low: [
+        { id: 'sukuk', name: 'Sukuk (Islamic Bonds)', apy: '4.8%', allocation: 40, risk: 'Very Low', protocol: 'Islamic Finance', type: 'islamic', description: 'Asset-backed Islamic securities' },
+        { id: 'wakalah', name: 'Wakalah Investment', apy: '5.5%', allocation: 35, risk: 'Low', protocol: 'Islamic Banking', type: 'islamic', description: 'Agency-based investment' },
+        { id: 'murabaha', name: 'Murabaha Finance', apy: '6.2%', allocation: 25, risk: 'Low', protocol: 'Islamic Banking', type: 'islamic', description: 'Cost-plus financing' }
+      ],
+      medium: [
+        { id: 'sukuk', name: 'Sukuk (Islamic Bonds)', apy: '4.8%', allocation: 25, risk: 'Very Low', protocol: 'Islamic Finance', type: 'islamic', description: 'Asset-backed Islamic securities' },
+        { id: 'halal-stocks', name: 'Halal Stock Portfolio', apy: '11.8%', allocation: 30, risk: 'Medium', protocol: 'Islamic ETFs', type: 'islamic', description: 'Shariah-compliant equities' },
+        { id: 'musharaka', name: 'Musharaka Investment', apy: '10.5%', allocation: 25, risk: 'Medium', protocol: 'Islamic Banking', type: 'islamic', description: 'Partnership-based investment' },
+        { id: 'ijarah', name: 'Ijarah (Leasing)', apy: '8.9%', allocation: 20, risk: 'Medium', protocol: 'Islamic Banking', type: 'islamic', description: 'Asset leasing investment' }
+      ],
+      high: [
+        { id: 'halal-stocks', name: 'Halal Stock Portfolio', apy: '11.8%', allocation: 20, risk: 'Medium', protocol: 'Islamic ETFs', type: 'islamic', description: 'Shariah-compliant equities' },
+        { id: 'musharaka', name: 'Musharaka Investment', apy: '10.5%', allocation: 25, risk: 'Medium', protocol: 'Islamic Banking', type: 'islamic', description: 'Partnership-based investment' },
+        { id: 'halal-crypto', name: 'Halal Crypto Mining', apy: '16.2%', allocation: 30, risk: 'Medium-High', protocol: 'Islamic DeFi', type: 'islamic', description: 'Shariah-compliant mining' },
+        { id: 'salam', name: 'Salam Forward Contracts', apy: '14.7%', allocation: 25, risk: 'High', protocol: 'Islamic Trading', type: 'islamic', description: 'Forward sale contracts' }
+      ]
+    }
   };
 
   const handleRiskSelection = (risk) => {
     setRiskProfile(risk);
-    setSelectedStrategies(investmentOptions[risk]);
+    const bankingType = islamicBanking ? 'islamic' : 'conventional';
+    setSelectedStrategies(investmentOptions[bankingType][risk]);
     setStep(3);
   };
 
@@ -140,6 +277,23 @@ const SynnaxBankingPlatform = () => {
     }, 2000);
   };
 
+  const startCopyTrading = (trader) => {
+    setSelectedTrader(trader);
+    setCopyTradingAmount('');
+  };
+
+  const executeCopyTrade = () => {
+    if (parseFloat(copyTradingAmount) >= selectedTrader.minCopyAmount && 
+        parseFloat(copyTradingAmount) <= selectedTrader.maxCopyAmount) {
+      // Simulate copy trading execution
+      alert(`Successfully started copying ${selectedTrader.name} with $${copyTradingAmount}`);
+      setSelectedTrader(null);
+      setCopyTradingAmount('');
+    } else {
+      alert(`Amount must be between $${selectedTrader.minCopyAmount} and $${selectedTrader.maxCopyAmount}`);
+    }
+  };
+
   const totalValue = portfolio.reduce((sum, item) => sum + parseFloat(item.amount), 0);
   const weightedAPY = portfolio.reduce((sum, item) => 
     sum + (parseFloat(item.apy) * parseFloat(item.amount) / totalValue), 0
@@ -148,29 +302,26 @@ const SynnaxBankingPlatform = () => {
   const availableCredit = userData.creditLimit - userData.creditUsed;
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-gradient-to-br from-gray-900 via-emerald-900 to-gray-900 min-h-screen text-white">
+    <div className="max-w-7xl mx-auto p-6 min-h-screen text-white">
       {/* Header */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center mb-4">
-          <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mr-3">
-            <span className="text-white font-bold text-lg">S</span>
-          </div>
           <div>
             <h1 className="text-4xl font-bold text-white">Synnax</h1>
-            <p className="text-emerald-400">Next-Gen Banking Platform</p>
+            {/* <p className="text-green-400">Next-Gen Banking Platform</p> */}
           </div>
         </div>
-        <p className="text-gray-300">Crypto credit card & intelligent investment strategies</p>
+        <p className="text-gray-300">Crypto credit card, intelligent investments & copy trading</p>
       </div>
 
       {/* Main Navigation */}
       <div className="flex justify-center mb-8">
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-2 flex space-x-2">
+        <div className="glass bg-gradient-to-br from-[#181A20] via-[#1a2a23] to-[#23272f] rounded-2xl p-2 flex space-x-2">
           <button
             onClick={() => setActiveTab('current')}
             className={`px-6 py-3 rounded-xl font-semibold transition-all ${
               activeTab === 'current' 
-                ? 'bg-emerald-600 text-white shadow-lg' 
+                ? 'bg-gradient-to-br from-green-700 via-green-800 to-green-900 text-white shadow-lg glass' 
                 : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -181,12 +332,23 @@ const SynnaxBankingPlatform = () => {
             onClick={() => setActiveTab('savings')}
             className={`px-6 py-3 rounded-xl font-semibold transition-all ${
               activeTab === 'savings' 
-                ? 'bg-emerald-600 text-white shadow-lg' 
+                ? 'bg-gradient-to-br from-green-700 via-green-800 to-green-900 text-white shadow-lg glass' 
                 : 'text-gray-400 hover:text-white'
             }`}
           >
             <PiggyBank className="w-5 h-5 inline mr-2" />
             Savings & Investments
+          </button>
+          <button
+            onClick={() => setActiveTab('copy-trading')}
+            className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+              activeTab === 'copy-trading' 
+                ? 'bg-gradient-to-br from-green-700 via-green-800 to-green-900 text-white shadow-lg glass' 
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Copy className="w-5 h-5 inline mr-2" />
+            Copy Trading
           </button>
         </div>
       </div>
@@ -196,9 +358,9 @@ const SynnaxBankingPlatform = () => {
         <div className="space-y-6">
           {/* Account Overview */}
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-emerald-800/30 to-emerald-900/30 backdrop-blur-sm border border-emerald-700/30 rounded-2xl p-6">
+            <div className="glass bg-gradient-to-br from-[#181A20] via-[#1a2a23] to-[#23272f] p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-emerald-400">Current Balance</h3>
+                <h3 className="text-lg font-semibold text-green-400">Current Balance</h3>
                 <button
                   onClick={() => setShowBalance(!showBalance)}
                   className="text-gray-400 hover:text-white"
@@ -212,8 +374,8 @@ const SynnaxBankingPlatform = () => {
               <p className="text-sm text-gray-400 mt-2">USDC Balance</p>
             </div>
 
-            <div className="bg-gradient-to-br from-emerald-800/30 to-emerald-900/30 backdrop-blur-sm border border-emerald-700/30 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-emerald-400 mb-4">Credit Available</h3>
+            <div className="glass bg-gradient-to-br from-[#181A20] via-[#1a2a23] to-[#23272f] p-6">
+              <h3 className="text-lg font-semibold text-green-400 mb-4">Credit Available</h3>
               <p className="text-3xl font-bold text-white">${availableCredit.toLocaleString()}</p>
               <div className="mt-4">
                 <div className="flex justify-between text-sm text-gray-400 mb-2">
@@ -222,22 +384,22 @@ const SynnaxBankingPlatform = () => {
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-2">
                   <div 
-                    className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${(userData.creditUsed / userData.creditLimit) * 100}%` }}
                   />
                 </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-emerald-800/30 to-emerald-900/30 backdrop-blur-sm border border-emerald-700/30 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-emerald-400 mb-4">Total Deposits</h3>
+            <div className="glass bg-gradient-to-br from-[#181A20] via-[#1a2a23] to-[#23272f] p-6">
+              <h3 className="text-lg font-semibold text-green-400 mb-4">Total Deposits</h3>
               <p className="text-3xl font-bold text-white">${userData.totalDeposits.toLocaleString()}</p>
               <p className="text-sm text-gray-400 mt-2">Lifetime deposits with Synnax</p>
             </div>
           </div>
 
           {/* Crypto Credit Card */}
-          <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-2xl p-8 relative overflow-hidden">
+          <div className="glass bg-gradient-to-br from-[#181A20] via-[#1a2a23] to-[#23272f] rounded-2xl p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-12 -mb-12" />
             
@@ -245,26 +407,26 @@ const SynnaxBankingPlatform = () => {
               <div className="flex justify-between items-start mb-8">
                 <div>
                   <h3 className="text-2xl font-bold text-white mb-2">Synnax Card</h3>
-                  <p className="text-emerald-100">Stablecoin Credit Card</p>
+                  <p className="text-green-400">Stablecoin Credit Card</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-emerald-100 text-sm">Available Credit</p>
+                  <p className="text-green-400 text-sm">Available Credit</p>
                   <p className="text-2xl font-bold text-white">${availableCredit.toLocaleString()}</p>
                 </div>
               </div>
               
               <div className="mb-6">
-                <p className="text-emerald-100 text-sm mb-1">Card Number</p>
+                <p className="text-green-400 text-sm mb-1">Card Number</p>
                 <p className="text-xl font-mono text-white tracking-wider">•••• •••• •••• 8492</p>
               </div>
               
               <div className="flex justify-between">
                 <div>
-                  <p className="text-emerald-100 text-sm">Valid Thru</p>
+                  <p className="text-green-400 text-sm">Valid Thru</p>
                   <p className="text-white font-semibold">12/27</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-emerald-100 text-sm">Credit backed by</p>
+                  <p className="text-green-400 text-sm">Credit backed by</p>
                   <p className="text-white font-semibold">Your USDC deposits</p>
                 </div>
               </div>
@@ -272,14 +434,14 @@ const SynnaxBankingPlatform = () => {
           </div>
 
           {/* Recent Transactions */}
-          <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6">
+          <div className="glass bg-gradient-to-br from-[#181A20] via-[#1a2a23] to-[#23272f] p-6">
             <h3 className="text-xl font-bold text-white mb-6">Recent Transactions</h3>
             <div className="space-y-4">
               {userData.cardTransactions.map((transaction) => (
                 <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-700/30 rounded-xl">
                   <div className="flex items-center space-x-4">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      transaction.type === 'deposit' ? 'bg-emerald-600' : 'bg-gray-600'
+                      transaction.type === 'deposit' ? 'bg-green-600' : 'bg-gray-600'
                     }`}>
                       {transaction.type === 'deposit' ? 
                         <ArrowDownRight className="w-5 h-5 text-white" /> : 
@@ -293,7 +455,7 @@ const SynnaxBankingPlatform = () => {
                   </div>
                   <div className="text-right">
                     <p className={`text-lg font-bold ${
-                      transaction.amount > 0 ? 'text-emerald-400' : 'text-white'
+                      transaction.amount > 0 ? 'text-green-400' : 'text-white'
                     }`}>
                       {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
                     </p>
@@ -360,7 +522,7 @@ const SynnaxBankingPlatform = () => {
                   </div>
                   
                   <button
-                    onClick={() => setStep(2)}
+                    onClick={() => setShowIslamicModal(true)}
                     disabled={!depositAmount || parseFloat(depositAmount) <= 0 || parseFloat(depositAmount) > userData.currentBalance}
                     className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-600 text-white font-bold rounded-xl transition-colors"
                   >
@@ -448,8 +610,19 @@ const SynnaxBankingPlatform = () => {
                               {strategy.selected !== false && <CheckCircle className="w-4 h-4 text-white" />}
                             </button>
                             <div>
-                              <h3 className="font-bold text-white">{strategy.name}</h3>
+                              <div className="flex items-center space-x-2">
+                                <h3 className="font-bold text-white">{strategy.name}</h3>
+                                {strategy.type === 'islamic' && (
+                                  <span className="px-2 py-1 bg-emerald-900/50 text-emerald-400 text-xs font-medium rounded-full flex items-center">
+                                    <Moon className="w-3 h-3 mr-1" />
+                                    Halal
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-sm text-gray-400">{strategy.protocol} • {strategy.risk} Risk</p>
+                              {strategy.description && (
+                                <p className="text-xs text-gray-500 mt-1">{strategy.description}</p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -519,8 +692,22 @@ const SynnaxBankingPlatform = () => {
                   <p className="text-2xl font-bold text-emerald-400">{riskProfiles[riskProfile].name}</p>
                 </div>
                 <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-xl p-6">
-                  <h3 className="text-sm font-medium text-gray-400 mb-2">Strategies</h3>
-                  <p className="text-2xl font-bold text-emerald-400">{portfolio.length}</p>
+                  <h3 className="text-sm font-medium text-gray-400 mb-2">Banking Type</h3>
+                  <div className="flex items-center justify-center">
+                    <p className="text-2xl font-bold text-emerald-400">
+                      {islamicBanking ? (
+                        <span className="flex items-center">
+                          <Moon className="w-6 h-6 mr-2" />
+                          Islamic
+                        </span>
+                      ) : (
+                        <span className="flex items-center">
+                          <DollarSign className="w-6 h-6 mr-2" />
+                          Conventional
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -542,8 +729,19 @@ const SynnaxBankingPlatform = () => {
                   {portfolio.map((item, index) => (
                     <div key={index} className="flex items-center justify-between p-4 bg-gray-700/30 rounded-xl">
                       <div className="flex-1">
-                        <h4 className="font-bold text-white">{item.name}</h4>
+                        <div className="flex items-center space-x-2">
+                          <h4 className="font-bold text-white">{item.name}</h4>
+                          {item.type === 'islamic' && (
+                            <span className="px-2 py-1 bg-emerald-900/50 text-emerald-400 text-xs font-medium rounded-full flex items-center">
+                              <Moon className="w-3 h-3 mr-1" />
+                              Halal
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-400">{item.protocol} • {item.risk} Risk</p>
+                        {item.description && (
+                          <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+                        )}
                       </div>
                       <div className="flex items-center space-x-6">
                         <div className="text-center">
@@ -579,13 +777,29 @@ const SynnaxBankingPlatform = () => {
                       Based on current market conditions and your {riskProfiles[riskProfile].name.toLowerCase()} strategy, 
                       your portfolio is projected to generate approximately ${(totalValue * parseFloat(weightedAPY) / 100).toFixed(2)} 
                       in annual returns.
+                      {islamicBanking && (
+                        <span className="block mt-2 text-emerald-400">
+                          ✓ All investments comply with Shariah law and are interest-free
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-emerald-400 mb-2">Risk Assessment</h4>
+                    <h4 className="font-semibold text-emerald-400 mb-2">
+                      {islamicBanking ? 'Shariah Compliance' : 'Risk Assessment'}
+                    </h4>
                     <p className="text-gray-300 text-sm">
-                      Your portfolio maintains a balanced risk profile with {portfolio.length} diversified strategies. 
-                      The weighted risk level is optimized for your selected {riskProfiles[riskProfile].name.toLowerCase()} approach.
+                      {islamicBanking ? (
+                        <>
+                          Your portfolio maintains full Shariah compliance with {portfolio.length} diversified halal strategies. 
+                          All investments are asset-backed and avoid interest (Riba), gambling (Maysir), and uncertainty (Gharar).
+                        </>
+                      ) : (
+                        <>
+                          Your portfolio maintains a balanced risk profile with {portfolio.length} diversified strategies. 
+                          The weighted risk level is optimized for your selected {riskProfiles[riskProfile].name.toLowerCase()} approach.
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -608,6 +822,282 @@ const SynnaxBankingPlatform = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Copy Trading Tab */}
+      {activeTab === 'copy-trading' && (
+        <div className="space-y-6">
+          {/* Copy Trading Overview */}
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-gradient-to-br from-emerald-800/30 to-emerald-900/30 backdrop-blur-sm border border-emerald-700/30 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-emerald-400 mb-4">Copy Trading Balance</h3>
+              <p className="text-3xl font-bold text-white">${userData.copyTradingBalance.toLocaleString()}</p>
+              <p className="text-sm text-gray-400 mt-2">Currently copying traders</p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-emerald-800/30 to-emerald-900/30 backdrop-blur-sm border border-emerald-700/30 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-emerald-400 mb-4">Available to Copy</h3>
+              <p className="text-3xl font-bold text-white">${userData.currentBalance.toLocaleString()}</p>
+              <p className="text-sm text-gray-400 mt-2">From current account</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-emerald-800/30 to-emerald-900/30 backdrop-blur-sm border border-emerald-700/30 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-emerald-400 mb-4">Active Traders</h3>
+              <p className="text-3xl font-bold text-white">{traders.filter(t => t.isActive).length}</p>
+              <p className="text-sm text-gray-400 mt-2">Available for copying</p>
+            </div>
+          </div>
+
+          {/* Traders Grid */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {traders.map((trader) => (
+              <div key={trader.id} className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6">
+                {/* Trader Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold">{trader.avatar}</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-bold text-white">{trader.name}</h3>
+                        {trader.isVerified && <Star className="w-4 h-4 text-yellow-400 fill-current" />}
+                      </div>
+                      <p className="text-sm text-gray-400">{trader.username}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      trader.isActive ? 'bg-emerald-900/50 text-emerald-400' : 'bg-gray-700/50 text-gray-400'
+                    }`}>
+                      {trader.isActive ? 'Active' : 'Inactive'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Performance Metrics */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="text-center p-3 bg-gray-700/30 rounded-xl">
+                    <p className="text-sm text-gray-400">Monthly P&L</p>
+                    <p className={`text-lg font-bold ${trader.monthlyPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {trader.monthlyPnL >= 0 ? '+' : ''}${trader.monthlyPnL.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-700/30 rounded-xl">
+                    <p className="text-sm text-gray-400">Sharpe Ratio</p>
+                    <p className="text-lg font-bold text-emerald-400">{trader.sharpeRatio}</p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-700/30 rounded-xl">
+                    <p className="text-sm text-gray-400">Win Rate</p>
+                    <p className="text-lg font-bold text-emerald-400">{trader.winRate}%</p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-700/30 rounded-xl">
+                    <p className="text-sm text-gray-400">Followers</p>
+                    <p className="text-lg font-bold text-white">{trader.followers.toLocaleString()}</p>
+                  </div>
+                </div>
+
+                {/* Strategy Info */}
+                <div className="mb-4 p-3 bg-gray-700/20 rounded-xl">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-gray-400">Strategy</p>
+                      <p className="font-semibold text-white">{trader.strategy}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-400">Risk Level</p>
+                      <p className={`font-semibold ${
+                        trader.riskLevel === 'Low' ? 'text-emerald-400' : 
+                        trader.riskLevel === 'Medium' ? 'text-yellow-400' : 'text-red-400'
+                      }`}>
+                        {trader.riskLevel}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Copy Trading Limits */}
+                <div className="mb-4 p-3 bg-emerald-900/20 rounded-xl">
+                  <p className="text-sm text-gray-400 mb-1">Copy Trading Limits</p>
+                  <p className="text-sm text-white">
+                    ${trader.minCopyAmount.toLocaleString()} - ${trader.maxCopyAmount.toLocaleString()}
+                  </p>
+                </div>
+
+                {/* Copy Button */}
+                <button
+                  onClick={() => startCopyTrading(trader)}
+                  disabled={!trader.isActive}
+                  className={`w-full py-3 rounded-xl font-semibold transition-colors ${
+                    trader.isActive 
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                      : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  <Copy className="w-4 h-4 inline mr-2" />
+                  {trader.isActive ? 'Start Copy Trading' : 'Currently Inactive'}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Copy Trading Modal */}
+          {selectedTrader && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-gray-800/90 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-8 max-w-md w-full mx-4">
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold text-white mb-2">Copy {selectedTrader.name}</h3>
+                  <p className="text-gray-400">Enter amount to start copy trading</p>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={copyTradingAmount}
+                      onChange={(e) => setCopyTradingAmount(e.target.value)}
+                      placeholder="0.00"
+                      min={selectedTrader.minCopyAmount}
+                      max={selectedTrader.maxCopyAmount}
+                      className="w-full p-4 text-2xl text-center bg-gray-700/50 border-2 border-gray-600 rounded-xl focus:border-emerald-500 focus:outline-none text-white"
+                    />
+                    <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 font-semibold">USDC</span>
+                  </div>
+                  
+                  <div className="flex justify-center space-x-2">
+                    {['100', '500', '1000', '5000'].map(amount => (
+                      <button
+                        key={amount}
+                        onClick={() => setCopyTradingAmount(amount)}
+                        disabled={parseFloat(amount) < selectedTrader.minCopyAmount || parseFloat(amount) > selectedTrader.maxCopyAmount}
+                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        ${amount}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <div className="p-4 bg-emerald-900/20 rounded-xl">
+                    <p className="text-sm text-gray-400 mb-1">Expected Monthly Return</p>
+                    <p className="text-lg font-bold text-emerald-400">
+                      ${(parseFloat(copyTradingAmount || 0) * (selectedTrader.monthlyPnL / 10000)).toFixed(2)}
+                    </p>
+                  </div>
+                  
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => setSelectedTrader(null)}
+                      className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={executeCopyTrade}
+                      disabled={!copyTradingAmount || parseFloat(copyTradingAmount) < selectedTrader.minCopyAmount || parseFloat(copyTradingAmount) > selectedTrader.maxCopyAmount}
+                      className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-600 text-white rounded-xl transition-colors"
+                    >
+                      Start Copying
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Islamic Banking Preference Modal */}
+      {showIslamicModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-gray-800/90 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-8 max-w-2xl w-full mx-4">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Moon className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Investment Preferences</h3>
+              <p className="text-gray-400">Do you require Islamic (Halal) banking services?</p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              {/* Conventional Banking Option */}
+              <div
+                onClick={() => {
+                  setIslamicBanking(false);
+                  setShowIslamicModal(false);
+                  setStep(2);
+                }}
+                className="p-6 border-2 border-gray-600 hover:border-emerald-500 rounded-2xl cursor-pointer transition-all hover:bg-gray-700/30"
+              >
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <DollarSign className="w-6 h-6 text-white" />
+                  </div>
+                  <h4 className="text-xl font-bold text-white mb-2">Conventional Banking</h4>
+                  <p className="text-gray-400 text-sm mb-4">
+                    Traditional investment options including interest-based products, stocks, and crypto assets
+                  </p>
+                  <div className="space-y-2 text-left">
+                    <div className="flex items-center text-sm text-gray-300">
+                      <CheckCircle className="w-4 h-4 text-emerald-400 mr-2" />
+                      Higher potential returns
+                    </div>
+                    <div className="flex items-center text-sm text-gray-300">
+                      <CheckCircle className="w-4 h-4 text-emerald-400 mr-2" />
+                      Wide range of options
+                    </div>
+                    <div className="flex items-center text-sm text-gray-300">
+                      <CheckCircle className="w-4 h-4 text-emerald-400 mr-2" />
+                      Traditional finance products
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Islamic Banking Option */}
+              <div
+                onClick={() => {
+                  setIslamicBanking(true);
+                  setShowIslamicModal(false);
+                  setStep(2);
+                }}
+                className="p-6 border-2 border-gray-600 hover:border-emerald-500 rounded-2xl cursor-pointer transition-all hover:bg-gray-700/30"
+              >
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Moon className="w-6 h-6 text-white" />
+                  </div>
+                  <h4 className="text-xl font-bold text-white mb-2">Islamic Banking</h4>
+                  <p className="text-gray-400 text-sm mb-4">
+                    Shariah-compliant investment options with no interest (Riba) and ethical business practices
+                  </p>
+                  <div className="space-y-2 text-left">
+                    <div className="flex items-center text-sm text-gray-300">
+                      <CheckCircle className="w-4 h-4 text-emerald-400 mr-2" />
+                      No interest (Riba)
+                    </div>
+                    <div className="flex items-center text-sm text-gray-300">
+                      <CheckCircle className="w-4 h-4 text-emerald-400 mr-2" />
+                      Asset-backed investments
+                    </div>
+                    <div className="flex items-center text-sm text-gray-300">
+                      <CheckCircle className="w-4 h-4 text-emerald-400 mr-2" />
+                      Ethical business practices
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center">
+              <button
+                onClick={() => setShowIslamicModal(false)}
+                className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

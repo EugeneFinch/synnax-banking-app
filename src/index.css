@@ -12,8 +12,8 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.5);
-  border-radius: 4px;
+  background: linear-gradient(135deg, #6C38FF 0%, #00F0FF 100%);
+  border-radius: 8px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -43,6 +43,38 @@ html {
 
 /* Glass morphism effect */
 .glass {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+body {
+  background: radial-gradient(circle at 70% 20%, rgba(0,255,180,0.08) 0, transparent 60%),
+    linear-gradient(135deg, #181A20 0%, #1a2a23 60%, #23272f 100%);
+  color: #F5F7FA;
+  min-height: 100vh;
+  background-attachment: fixed;
+}
+
+/* Revolut gradient card utility */
+.revolut-gradient-card {
+  background: linear-gradient(135deg, #6C38FF 0%, #00F0FF 100%);
+  color: #fff;
+}
+
+/* Enhanced glassmorphism for overlays/cards */
+.glass {
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.bg-gradient-to-br {
+  background: linear-gradient(135deg, #1a2a23 0%, #16251e 60%, #0e1813 100%);
 } 

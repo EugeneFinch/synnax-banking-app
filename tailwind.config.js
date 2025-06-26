@@ -19,7 +19,17 @@ module.exports = {
           700: '#047857',
           800: '#065f46',
           900: '#064e3b',
-        }
+        },
+        revolut: {
+          blue: '#0074F6',
+          purple: '#6C38FF',
+          pink: '#FF3BFF',
+          teal: '#00F0FF',
+          dark: '#181A20',
+          light: '#F5F7FA',
+          gradient1: 'linear-gradient(135deg, #6C38FF 0%, #00F0FF 100%)',
+          gradient2: 'linear-gradient(135deg, #0074F6 0%, #FF3BFF 100%)',
+        },
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',
@@ -31,7 +41,11 @@ module.exports = {
           '0%': { transform: 'translateY(10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         }
-      }
+      },
+      backgroundImage: {
+        'revolut-gradient': 'linear-gradient(135deg, #6C38FF 0%, #00F0FF 100%)',
+        'revolut-gradient-2': 'linear-gradient(135deg, #0074F6 0%, #FF3BFF 100%)',
+      },
     },
   },
   plugins: [],
